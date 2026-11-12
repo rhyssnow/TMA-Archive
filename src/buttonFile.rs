@@ -1,6 +1,3 @@
-use sdl3::pixels::Color;
-use sdl3::render::{FPoint, FRect, WindowCanvas};
-
 pub mod buttonMod {
     use std::path::Path;
     use sdl3::EventPump;
@@ -15,6 +12,8 @@ pub mod buttonMod {
         pub active: bool,
         pub pressed: bool,
         hitbox: FRect,
+        pub textRenderArea: FRect,
+        text: String,
         pub texturePos: usize,
     }
 
@@ -28,7 +27,7 @@ pub mod buttonMod {
             let textTexture = renderer.create_texture_from_surface(&textSurface).unwrap();
 
             textureVec[texturePos] = textTexture;
-            button { x, y, width, height, active: false, pressed: false, hitbox: FRect::new(x, y, width, height), texturePos }
+            button { x, y, width, height,  text,active: false, pressed: false, hitbox: FRect::new(x, y, width, height), textRenderArea: FRect::new(0.0,0.0,0.0,0.0), texturePos }
         }
 
         fn input(&mut self, events: &EventPump) {
@@ -78,6 +77,10 @@ pub mod buttonMod {
 
             rectRenderRect.y += 3.0;
             rectRenderRect.h -= 6.0;
+            rectRenderRect.x = rectRenderRect.x + rectRenderRect.w /2.0;
+            rectRenderRect.w = rectRenderRect.h * 0.6 * self.text.len() as f32;
+            rectRenderRect.x -= rectRenderRect.w /2.0;
+            self.textRenderArea = rectRenderRect;
             renderer.copy(&textureVec[self.texturePos], None, rectRenderRect).unwrap();
         }
     }

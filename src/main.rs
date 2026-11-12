@@ -4,6 +4,7 @@
 mod buttonFile;
 
 use std::path::Path;
+use std::time::Instant;
 use sdl3::EventPump;
 use sdl3::gamepad::Button;
 use sdl3::keyboard::{KeyboardState, Scancode};
@@ -15,6 +16,7 @@ use sdl3::render::{create_renderer, WindowCanvas, Texture, FRect, FPoint};
 use sdl3::surface::Surface;
 use sdl3::video::Window;
 use lopdf::Document;
+use sdl3::event::Event;
 
 struct sceneChangeButton {
     changeTo: String,
@@ -40,6 +42,8 @@ struct searchButton {
     search: String,
     clickedIn: bool,
     results: Vec<String>,
+    cursorBlink: Instant,
+    renderCursor: bool,
     button: button
 }
 
@@ -50,7 +54,24 @@ impl buttonTrait for searchButton{
 }
 
 impl searchButton{
-    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, results: Vec::new(), button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
+    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, results: Vec::new(), cursorBlink: Instant::now(), renderCursor: true, button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
+
+    fn searchRender (&mut self, renderer: &mut WindowCanvas) {
+        if self.cursorBlink.elapsed().as_millis() > 100 {
+            self.renderCursor = !self.renderCursor;
+            self.cursorBlink = Instant::now();
+        }
+        if self.clickedIn && self.renderCursor {
+            let cursorBox = FRect::new(
+                self.asButton().textRenderArea.x + self.asButton().textRenderArea.w + 3.0,
+                self.asButton().textRenderArea.y,
+                5.0,
+                self.asButton().textRenderArea.h
+            );
+            renderer.set_draw_color(Color::RGB(255, 255, 255));
+            renderer.fill_rect(cursorBox).unwrap();
+        }
+    }
     fn update(&mut self, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>){
         let path = Path::new("src/Assets/DovesTypeText-Regular.ttf");
         let ttfContext = sdl3::ttf::init().map_err(|e| e.to_string()).unwrap();
@@ -73,13 +94,24 @@ impl searchButton{
         textureVec[self.asButton().texturePos] = textTexture;
     }
 
-    fn searchInput (&mut self, events: &EventPump, magButtons: &mut Vec<magButton>){
+    fn searchInput (&mut self, events: &mut EventPump, magButtons: &mut Vec<magButton>){
         if self.clickedIn {
             if !self.asButton().active && events.mouse_state().left(){
                 self.clickedIn = false;
             }
             if events.keyboard_state().is_scancode_pressed(Scancode::Return) {
                 self.search(magButtons);
+            }
+            if events.keyboard_state().is_scancode_pressed(Scancode::Backspace) {
+                self.search.pop();
+            }
+            for event in events.poll_iter() {
+                match event {
+                    Event::TextInput {text, ..} => {
+                        self.search += &text;
+                    }
+                    _ => {}
+                }
             }
         }
     }
