@@ -1,77 +1,137 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
+mod buttonFile;
+
+use std::path::Path;
 use sdl3::EventPump;
 use sdl3::gamepad::Button;
-use sdl3::keyboard::KeyboardState;
+use sdl3::keyboard::{KeyboardState, Scancode};
 use sdl3::pixels::Color;
 use sdl3::rect::Point;
+use crate::buttonFile::buttonMod::buttonTrait;
+use crate::buttonFile::buttonMod::button;
 use sdl3::render::{create_renderer, WindowCanvas, Texture, FRect, FPoint};
 use sdl3::surface::Surface;
 use sdl3::video::Window;
+use lopdf::Document;
 
-struct button {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-    active: bool,
-    pressed: bool,
-    hitbox: FRect,
-    text: String,
-    texturePos: usize,
-    buttonType: String
+struct sceneChangeButton {
+    changeTo: String,
+    button: button
 }
 
-impl button {
-    fn new(text: &str, x: f32, y: f32, width: f32, height: f32, buttonType: &str, texturePos: usize) -> button {button{text: text.to_string(), x, y, width, height, active: false, pressed: false, hitbox: FRect::new(x, y, width, height), buttonType: buttonType.to_string(), texturePos}}
+impl buttonTrait for sceneChangeButton{
+    fn asButton(&mut self) -> &mut button{
+        &mut self.button
+    }
+}
 
-    fn input(&mut self, events: &EventPump) {
-        if frectContains(events.mouse_state().x(), events.mouse_state().y(), self.hitbox) {
-            self.active = true;
+impl sceneChangeButton{
+    fn new(changeTo: String, x: f32, y: f32, width: f32, height: f32, texturePos: usize, text: String, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> sceneChangeButton{ sceneChangeButton{changeTo, button: button::new( x, y, width, height, texturePos, textureVec, text, renderer)} }
+    fn update(&mut self, mode: &mut String) {
+        if self.asButton().pressed{
+            *mode = self.changeTo.clone();
+        }
+    }
+}
+
+struct searchButton {
+    search: String,
+    clickedIn: bool,
+    results: Vec<String>,
+    button: button
+}
+
+impl buttonTrait for searchButton{
+    fn asButton(&mut self) -> &mut button{
+        &mut self.button
+    }
+}
+
+impl searchButton{
+    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, results: Vec::new(), button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
+    fn update(&mut self, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>){
+        let path = Path::new("src/Assets/DovesTypeText-Regular.ttf");
+        let ttfContext = sdl3::ttf::init().map_err(|e| e.to_string()).unwrap();
+        let font = ttfContext.load_font(path, 100.0).expect("SDL_TTF failed to load font.");
+
+        if self.asButton().pressed {
+            self.clickedIn = true;
+        }
+
+        let textSurface: Surface;
+
+        if self.search.is_empty() {
+            textSurface = font.render("search").blended(Color::RGB(200, 200, 200)).unwrap();
         }
         else {
-            self.active = false;
+            textSurface = font.render(&*self.search).blended(Color::RGB(255, 255, 255)).unwrap();
         }
-        if self.active && events.mouse_state().left() {
-            self.pressed = true;
-        }
-        else {
-            self.pressed = false;
+        let textTexture = renderer.create_texture_from_surface(&textSurface).unwrap();
+
+        textureVec[self.asButton().texturePos] = textTexture;
+    }
+
+    fn searchInput (&mut self, events: &EventPump, magButtons: &mut Vec<magButton>){
+        if self.clickedIn {
+            if !self.asButton().active && events.mouse_state().left(){
+                self.clickedIn = false;
+            }
+            if events.keyboard_state().is_scancode_pressed(Scancode::Return) {
+                self.search(magButtons);
+            }
         }
     }
 
-    fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>) {
-        let radius = self.hitbox.h/2.0;
-        let borderColor = match self.active {
-            true => Color::RGB(200, 200, 200),
-            false => Color::RGB(150, 150, 150)
-        };
-        let color = match self.active {
-            true => Color::RGB(125, 125, 125),
-            false => Color::RGB(75, 75, 75)
-        };
-        let mut rectRenderRect = FRect::new(
-            self.hitbox.x + radius,
-            self.hitbox.y,
-            self.hitbox.w - self.hitbox.h,
-            self.hitbox.h + 1.0
-        );
-        renderCircle(renderer, rectRenderRect.x, rectRenderRect.y + radius, radius, borderColor);
-        renderCircle(renderer, rectRenderRect.x + rectRenderRect.w, rectRenderRect.y + radius, radius, borderColor);
-        renderer.set_draw_color(borderColor);
-        renderer.fill_rect(rectRenderRect).unwrap();
+    fn search (&mut self, magButtons: &mut Vec<magButton>, ) {
+        for magButton in magButtons {
+            let file = "src/Assets/MagnusArchivesTranscripts".to_string() + &*magButton.file.clone() + ".pdf";
+            match Document::load(file) {
+                Ok(document) => {
+                    let pages = document.get_pages();
+                    let mut texts = Vec::new();
 
-        renderCircle(renderer, rectRenderRect.x, rectRenderRect.y + radius, radius - 2.0, color);
-        renderCircle(renderer, rectRenderRect.x + rectRenderRect.w, rectRenderRect.y + radius, radius - 2.0, color);
+                    for (i, _) in pages.iter().enumerate() {
+                        let page_number = (i + 1) as u32;
+                        let text = document.extract_text(&[page_number]);
+                        texts.push(text.unwrap_or_default());
+                    }
 
-        rectRenderRect.x += 2.0;
-        rectRenderRect.y += 2.0;
-        rectRenderRect.w -= 4.0;
-        rectRenderRect.h -= 4.0;
+                    for text in texts {
+                        if text.contains(self.search.as_str()) {
+                            magButton.active = true;
+                        }
+                        else {
+                            magButton.active = false;
+                        }
+                    }
+                }
+                Err(err) => eprintln!("Error: {}", err),
+            }
+        }
+    }
+}
 
-        renderer.set_draw_color(color);
-        renderer.fill_rect(rectRenderRect).unwrap();
+struct magButton {
+    file: String,
+    button: button,
+    active: bool
+}
+
+impl buttonTrait for magButton{
+    fn asButton(&mut self) -> &mut button{
+        &mut self.button
+    }
+}
+
+impl magButton {
+    fn new(file: String, x: f32, y: f32, width: f32, height: f32, texturePos: usize, text: String, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> magButton{magButton{file, active: true, button: button::new( x, y, width, height, texturePos, textureVec, text, renderer)}}
+
+    fn update (&mut self, mode: &mut String) {
+        if self.asButton().pressed {
+            *mode = "viewer/".to_string() + &*self.file.clone();
+        }
     }
 }
 
@@ -107,16 +167,15 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
     let mut meshBox = meshBox::new(window.size_in_pixels().0 as f32, window.size_in_pixels().1 as f32);
 
-    let mut button = button::new("y", 200.0, 300.0, 400.0, 80.0, "y", 0);
 
     while running {
-        input(&mut button, &mut running);
+        input(&mut running);
         update();
-        render(&mut button, renderer, &mut meshBox, &textureVec, window);
+        render( renderer, &mut meshBox, &textureVec, window);
     }
 }
 
-fn input(button: &mut button, running: &mut bool) {
+fn input( running: &mut bool) {
     let mut eventPump = sdl3::init().unwrap().event_pump().unwrap();
 
     for event in eventPump.poll_iter() {
@@ -128,70 +187,21 @@ fn input(button: &mut button, running: &mut bool) {
             _ => {}
         }
     }
-    button.input(&eventPump);
 }
 
 fn update () {
 
 }
 
-fn render(button: &mut button, renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<Texture>, window: &Window) {
+fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<Texture>, window: &Window) {
     renderer.set_draw_color(Color::RGB(0, 0, 0));
     renderer.clear();
 
     meshBox.render(&textureVec, renderer, window);
-    button.render(renderer, textureVec);
 
     renderer.present();
 }
 
-fn setupEnvironment (mode: String, buttons: &mut Vec<Button>){
+fn setupEnvironment (mode: String, buttons: &mut Vec<Button>) {
 
-}
-
-fn frectContains (pointX: f32, pointY: f32, rect: FRect) -> bool{
-    let mut isWithin = true;
-
-    if pointX < rect.x || pointX > rect.x + rect.w {
-        isWithin = false;
-    }
-    if pointY < rect.y || pointY > rect.y + rect.h {
-        isWithin = false;
-    }
-
-    isWithin
-}
-
-fn renderCircle(renderer: &mut WindowCanvas, centerX: f32, centerY: f32, radius:f32, color: Color) {
-    renderer.set_draw_color(color);
-
-    let mut offsetx = 0.0;
-    let mut offsety = radius;
-    let mut d = radius - 1.0;
-    let status = 0.0;
-
-    while offsety >= offsetx {
-        renderer.draw_line(FPoint::new(centerX - offsety, centerY + offsetx), FPoint::new(centerX + offsety, centerY + offsetx)).unwrap();
-        renderer.draw_line(FPoint::new(centerX - offsetx, centerY + offsety), FPoint::new(centerX + offsetx, centerY + offsety)).unwrap();
-        renderer.draw_line(FPoint::new(centerX - offsetx, centerY - offsety), FPoint::new(centerX + offsetx, centerY - offsety)).unwrap();
-        renderer.draw_line(FPoint::new(centerX - offsety, centerY - offsetx), FPoint::new(centerX + offsety, centerY - offsetx)).unwrap();
-
-
-        if status < 0.0{
-            break;
-        }
-        if d >= offsetx*2.0 {
-            d -= offsetx*2.0 + 1.0;
-            offsetx += 1.0;
-        }
-        else if d > 2.0 * (radius - offsety) {
-            d += offsety*2.0 - 1.0;
-            offsety -= 1.0;
-        }
-        else {
-            d += 2.0*(offsety-offsetx-1.0);
-            offsety -= 1.0;
-            offsetx += 1.0;
-        }
-    }
 }
