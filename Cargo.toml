@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 sdl3 = { version = "0.20.0", features = ["build-from-source", "ttf", "unsafe_textures"] }
+const_hashmap = "0.1.0"
 lopdf = "0.47.0"

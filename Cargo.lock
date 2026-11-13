@@ -6,6 +6,7 @@ version = 4
 name = "MagnusArchivesArchive"
 version = "0.1.0"
 dependencies = [
+ "const_hashmap",
  "lopdf",
  "sdl3",
 ]
@@ -168,6 +169,26 @@ name = "const-oid"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be95d4a884358a21a199689323c29e9256b4a1b315e22f183d155422041d3a9a"
+
+[[package]]
+name = "const_hashmap"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32aa78c43c5e9b5222a85ea1300fb0810a689c3a2136e17216422b4f78ca0c22"
+dependencies = [
+ "const_hashmap_macros",
+]
+
+[[package]]
+name = "const_hashmap_macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd2728e1b2155d20e1871639c94409799ceed509185f423a38e872df47c59302"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
 
 [[package]]
 name = "core-foundation-sys"
