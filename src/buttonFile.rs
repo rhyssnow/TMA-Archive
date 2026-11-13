@@ -26,11 +26,11 @@ pub mod buttonMod {
             let textSurface = font.render(&*text).blended(Color::RGB(255, 255, 255)).unwrap();
             let textTexture = renderer.create_texture_from_surface(&textSurface).unwrap();
 
-            textureVec[texturePos] = textTexture;
+            textureVec.push(textTexture);
             button { x, y, width, height,  text,active: false, pressed: false, hitbox: FRect::new(x, y, width, height), textRenderArea: FRect::new(0.0,0.0,0.0,0.0), texturePos }
         }
 
-        fn input(&mut self, events: &EventPump) {
+        pub(crate) fn input(&mut self, events: &EventPump) {
             if frectContains(events.mouse_state().x(), events.mouse_state().y(), self.hitbox) {
                 self.active = true;
             } else {
@@ -43,7 +43,7 @@ pub mod buttonMod {
             }
         }
 
-        fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>) {
+        pub(crate) fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>) {
             let radius = self.hitbox.h / 2.0;
             let borderColor = match self.active {
                 true => Color::RGB(200, 200, 200),
@@ -78,7 +78,7 @@ pub mod buttonMod {
             rectRenderRect.y += 3.0;
             rectRenderRect.h -= 6.0;
             rectRenderRect.x = rectRenderRect.x + rectRenderRect.w /2.0;
-            rectRenderRect.w = rectRenderRect.h * 0.6 * self.text.len() as f32;
+            rectRenderRect.w = rectRenderRect.h * 0.4 * self.text.len() as f32;
             rectRenderRect.x -= rectRenderRect.w /2.0;
             self.textRenderArea = rectRenderRect;
             renderer.copy(&textureVec[self.texturePos], None, rectRenderRect).unwrap();

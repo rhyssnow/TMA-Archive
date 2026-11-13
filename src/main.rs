@@ -218,7 +218,7 @@ static MAG_MAP: ConstMap<i32, &str, 200> = ConstMap::new([
     Bucket::Filled { key: 197, val: "Connected" },
     Bucket::Filled { key: 198, val: "Precipice" },
     Bucket::Filled { key: 199, val: "Seeing it Through" },
-    Bucket::Filled { key: 200, val: "LastWords" }
+    Bucket::Filled { key: 200, val: "Last Words" }
 ]);
 
 struct sceneChangeButton {
@@ -234,9 +234,10 @@ impl buttonTrait for sceneChangeButton{
 
 impl sceneChangeButton{
     fn new(changeTo: String, x: f32, y: f32, width: f32, height: f32, texturePos: usize, text: String, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> sceneChangeButton{ sceneChangeButton{changeTo, button: button::new( x, y, width, height, texturePos, textureVec, text, renderer)} }
-    fn update(&mut self, mode: &mut String) {
+    fn update(&mut self, mode: &mut String, newEnv: &mut bool) {
         if self.asButton().pressed{
             *mode = self.changeTo.clone();
+            *newEnv = true;
         }
     }
 }
@@ -395,22 +396,30 @@ fn main() {
 }
 
 fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
-    let mut mode = "home";
+    let mut mode = "home".to_string();
     let mut running = true;
     let mut textureVec = Vec::new();
     let surface = Surface::load_bmp("src/Assets/magnusbackground.bmp").unwrap();
     textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
     let mut meshBox = meshBox::new(window.size_in_pixels().0 as f32, window.size_in_pixels().1 as f32);
+    let mut newEnv = true;
+    let mut magButtons = Vec::new();
+    let mut sceneButtons = Vec::new();
+    let mut searchButtons = Vec::new();
 
 
     while running {
-        input(&mut running);
-        update();
-        render( renderer, &mut meshBox, &textureVec, window);
+        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons);
+        update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec);
+        render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons);
+        if newEnv {
+            setupEnvironment(&mode, &mut magButtons, &mut sceneButtons, &mut searchButtons, &meshBox, &mut textureVec, renderer);
+            newEnv = false;
+        }
     }
 }
 
-fn input( running: &mut bool) {
+fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>) {
     let mut eventPump = sdl3::init().unwrap().event_pump().unwrap();
 
     for event in eventPump.poll_iter() {
@@ -422,21 +431,86 @@ fn input( running: &mut bool) {
             _ => {}
         }
     }
+    for magButton in magButtons.iter_mut() {
+        magButton.asButton().input(&eventPump)
+    }
+    for sceneButton in sceneButtons.iter_mut() {
+        sceneButton.asButton().input(&eventPump)
+    }
+    for searchButton in searchButtons.iter_mut() {
+        searchButton.asButton().input(&eventPump);
+        searchButton.searchInput(&mut eventPump, magButtons);
+    }
 }
 
-fn update () {
-
+fn update (magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, mode: &mut String, newEnv: &mut bool, renderer: &mut WindowCanvas, textureVec: &mut Vec<Texture>) {
+    for magButton in magButtons.iter_mut() {
+        magButton.update(mode);
+    }
+    for sceneButton in sceneButtons.iter_mut() {
+        sceneButton.update(mode, newEnv);
+    }
+    for searchButton in searchButtons.iter_mut() {
+        searchButton.update(renderer, textureVec);
+    }
 }
 
-fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<Texture>, window: &Window) {
+fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<Texture>, window: &Window, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>) {
     renderer.set_draw_color(Color::RGB(0, 0, 0));
     renderer.clear();
 
     meshBox.render(&textureVec, renderer, window);
 
+    for magButton in magButtons.iter_mut() {
+        magButton.asButton().render(renderer, textureVec)
+    }
+    for sceneButton in sceneButtons.iter_mut() {
+        sceneButton.asButton().render(renderer, textureVec)
+    }
+    for searchButton in searchButtons.iter_mut() {
+        searchButton.asButton().render(renderer, textureVec);
+        searchButton.render(renderer, textureVec);
+    }
+
     renderer.present();
 }
 
-fn setupEnvironment (mode: String, buttons: &mut Vec<Button>) {
+fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButtons: &mut Vec<sceneChangeButton>, searchButtons: &mut Vec<searchButton>, meshBox: & meshBox, textureVec: &mut Vec<Texture>, renderer: &mut WindowCanvas) {
+    magButtons.clear();
+    sceneButtons.clear();
+    searchButtons.clear();
+    textureVec.clear();
 
+    match mode.as_str() {
+        "home" => {
+            let surface = Surface::load_bmp("src/Assets/magnusbackground.bmp").unwrap();
+            textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
+
+            let sceneButton1 = sceneChangeButton::new(
+                "archive".to_string(),
+                20.0,
+                meshBox.height - 120.0,
+                meshBox.width/2.0 - 30.0,
+                100.0,
+                1,
+                "Archive".to_string(),
+                renderer,
+                textureVec
+            );
+            let sceneButton2 = sceneChangeButton::new(
+                "search".to_string(),
+                meshBox.width/2.0 + 30.0,
+                meshBox.height - 120.0,
+                meshBox.width/2.0 - 30.0,
+                100.0,
+                2,
+                "Search".to_string(),
+                renderer,
+                textureVec
+            );
+            sceneButtons.push(sceneButton1);
+            sceneButtons.push(sceneButton2);
+        }
+        _ => {}
+    }
 }
