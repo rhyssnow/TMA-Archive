@@ -366,18 +366,18 @@ impl searchButton{
                 self.clickedIn = false;
             }
             let keyboardState = events.keyboard_state();
-            if self.inputLatency.elapsed().as_millis() > 70 {
+            if self.inputLatency.elapsed().as_millis() > 90 {
                 for scancode in keyboardState.pressed_scancodes() {
                     if scancode != Scancode::Return && scancode != Scancode::Backspace && scancode != Scancode::Space && self.search.len() < 45 {
                         self.search += &*scancode.to_string();
                     }
                     self.inputLatency = Instant::now();
                 }
-                if events.keyboard_state().is_scancode_pressed(Scancode::Backspace) {
-                    self.search.pop();
-                }
                 if events.keyboard_state().is_scancode_pressed(Scancode::Space) {
                     self.search += " ";
+                }
+                if events.keyboard_state().is_scancode_pressed(Scancode::Backspace) {
+                    self.search.pop();
                 }
             }
         }
@@ -385,8 +385,8 @@ impl searchButton{
 
     fn search (&mut self, magButtons: &mut Vec<magButton>, ) {
         for magButton in magButtons {
-            let file = "src/Assets/MagnusArchivesTranscripts".to_string() + &*magButton.file.clone() + ".pdf";
-            match Document::load(file) {
+            let file = "src/Assets/MagnusArchivesTranscripts/".to_string() + &*magButton.file.clone();
+            match Document::load(file.clone()) {
                 Ok(document) => {
                     let pages = document.get_pages();
                     let mut texts = Vec::new();
@@ -408,6 +408,7 @@ impl searchButton{
                 }
                 Err(err) => eprintln!("Error: {}", err),
             }
+            println!("Finished: {}", file);
         }
     }
 }
