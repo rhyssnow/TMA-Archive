@@ -43,7 +43,7 @@ pub mod buttonMod {
             }
         }
 
-        pub(crate) fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>) {
+        pub(crate) fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String) {
             let radius = self.hitbox.h / 2.0;
             let borderColor = match self.active {
                 true => Color::RGB(200, 200, 200),
@@ -78,7 +78,12 @@ pub mod buttonMod {
             rectRenderRect.y += 3.0;
             rectRenderRect.h -= 6.0;
             rectRenderRect.x = rectRenderRect.x + rectRenderRect.w /2.0;
-            rectRenderRect.w = rectRenderRect.h * 0.4 * self.text.len() as f32;
+            if search.is_empty() {
+                rectRenderRect.w = rectRenderRect.h * 0.4 * self.text.len() as f32;
+            }
+            else {
+                rectRenderRect.w = rectRenderRect.h * 0.4 * search.len() as f32;
+            }
             rectRenderRect.x -= rectRenderRect.w /2.0;
             self.textRenderArea = rectRenderRect;
             renderer.copy(&textureVec[self.texturePos], None, rectRenderRect).unwrap();
@@ -91,8 +96,8 @@ pub mod buttonMod {
             self.asButton().input(events);
         }
 
-        fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>) {
-            self.asButton().render(renderer, textureVec);
+        fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String) {
+            self.asButton().render(renderer, textureVec, search);
         }
     }
     fn frectContains (pointX: f32, pointY: f32, rect: FRect) -> bool{

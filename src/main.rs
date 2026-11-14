@@ -16,7 +16,7 @@ use sdl3::surface::Surface;
 use sdl3::video::Window;
 use lopdf::Document;
 use sdl3::event::Event;
-use const_hashmap::{ConstMap, build_map, Bucket};
+use const_hashmap::{ConstMap, Bucket};
 
 const MAG_MAP: ConstMap<i32, &str, 256> = ConstMap::new([
     Bucket::Filled { key: 1, val: "Anglerfish" },
@@ -303,6 +303,7 @@ struct searchButton {
     clickedIn: bool,
     results: Vec<String>,
     cursorBlink: Instant,
+    inputLatency: Instant,
     renderCursor: bool,
     button: button
 }
@@ -314,7 +315,7 @@ impl buttonTrait for searchButton{
 }
 
 impl searchButton{
-    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, results: Vec::new(), cursorBlink: Instant::now(), renderCursor: true, button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
+    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, results: Vec::new(), cursorBlink: Instant::now(), inputLatency: Instant::now(), renderCursor: true, button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
 
     fn searchRender (&mut self, renderer: &mut WindowCanvas) {
         if self.cursorBlink.elapsed().as_millis() > 400 {
@@ -354,7 +355,7 @@ impl searchButton{
         textureVec[self.asButton().texturePos] = textTexture;
     }
 
-    fn searchInput (&mut self, events: &mut EventPump, magButtons: &mut Vec<magButton>){
+    fn searchInput (&mut self, events: &mut EventPump, magButtons: &mut Vec<magButton>, ){
         if self.clickedIn {
             if !self.asButton().active && events.mouse_state().left(){
                 self.clickedIn = false;
@@ -362,17 +363,21 @@ impl searchButton{
             if events.keyboard_state().is_scancode_pressed(Scancode::Return) {
                 self.search(magButtons);
                 self.search.clear();
+                self.clickedIn = false;
             }
-            if events.keyboard_state().is_scancode_pressed(Scancode::Backspace) {
-                self.search.pop();
-            }
-            for event in events.poll_iter() {
-                match event {
-                    Event::TextInput {text, ..} => {
-                        self.search += &text;
-
+            let keyboardState = events.keyboard_state();
+            if self.inputLatency.elapsed().as_millis() > 70 {
+                for scancode in keyboardState.pressed_scancodes() {
+                    if scancode != Scancode::Return && scancode != Scancode::Backspace && scancode != Scancode::Space && self.search.len() < 45 {
+                        self.search += &*scancode.to_string();
                     }
-                    _ => {}
+                    self.inputLatency = Instant::now();
+                }
+                if events.keyboard_state().is_scancode_pressed(Scancode::Backspace) {
+                    self.search.pop();
+                }
+                if events.keyboard_state().is_scancode_pressed(Scancode::Space) {
+                    self.search += " ";
                 }
             }
         }
@@ -479,13 +484,14 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
 
 fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>) {
     let mut eventPump = sdl3::init().unwrap().event_pump().unwrap();
+    let mut search: String;
 
     for event in eventPump.poll_iter() {
         use sdl3::event::Event;
         match event {
             Event::Quit { .. } =>  {
                 *running = false;
-            }
+            },
             _ => {}
         }
     }
@@ -520,13 +526,14 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
     meshBox.render(&textureVec, renderer, window);
 
     for magButton in magButtons.iter_mut() {
-        magButton.asButton().render(renderer, textureVec)
+        magButton.asButton().render(renderer, textureVec, "".to_string())
     }
     for sceneButton in sceneButtons.iter_mut() {
-        sceneButton.asButton().render(renderer, textureVec)
+        sceneButton.asButton().render(renderer, textureVec, "".to_string())
     }
     for searchButton in searchButtons.iter_mut() {
-        searchButton.asButton().render(renderer, textureVec);
+        let search = searchButton.search.clone();
+        searchButton.asButton().render(renderer, textureVec, search);
         searchButton.searchRender(renderer);
     }
 
