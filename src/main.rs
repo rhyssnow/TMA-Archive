@@ -18,7 +18,7 @@ use lopdf::Document;
 use sdl3::event::Event;
 use const_hashmap::{ConstMap, build_map, Bucket};
 
-static MAG_MAP: ConstMap<i32, &str, 200> = ConstMap::new([
+const MAG_MAP: ConstMap<i32, &str, 256> = ConstMap::new([
     Bucket::Filled { key: 1, val: "Anglerfish" },
     Bucket::Filled { key: 2, val: "Do Not Open" },
     Bucket::Filled { key: 3, val: "Across The Street" },
@@ -218,7 +218,63 @@ static MAG_MAP: ConstMap<i32, &str, 200> = ConstMap::new([
     Bucket::Filled { key: 197, val: "Connected" },
     Bucket::Filled { key: 198, val: "Precipice" },
     Bucket::Filled { key: 199, val: "Seeing it Through" },
-    Bucket::Filled { key: 200, val: "Last Words" }
+    Bucket::Filled { key: 200, val: "Last Words" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
+    Bucket::Filled { key: 1, val: "Anglerfish" },
 ]);
 
 struct sceneChangeButton {
@@ -261,18 +317,18 @@ impl searchButton{
     fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, results: Vec::new(), cursorBlink: Instant::now(), renderCursor: true, button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
 
     fn searchRender (&mut self, renderer: &mut WindowCanvas) {
-        if self.cursorBlink.elapsed().as_millis() > 100 {
+        if self.cursorBlink.elapsed().as_millis() > 400 {
             self.renderCursor = !self.renderCursor;
             self.cursorBlink = Instant::now();
         }
         if self.clickedIn && self.renderCursor {
             let cursorBox = FRect::new(
                 self.asButton().textRenderArea.x + self.asButton().textRenderArea.w + 3.0,
-                self.asButton().textRenderArea.y,
+                self.asButton().textRenderArea.y + 5.0,
                 5.0,
-                self.asButton().textRenderArea.h
+                self.asButton().textRenderArea.h - 10.0
             );
-            renderer.set_draw_color(Color::RGB(255, 255, 255));
+            renderer.set_draw_color(Color::RGB(225, 225, 225));
             renderer.fill_rect(cursorBox).unwrap();
         }
     }
@@ -305,6 +361,7 @@ impl searchButton{
             }
             if events.keyboard_state().is_scancode_pressed(Scancode::Return) {
                 self.search(magButtons);
+                self.search.clear();
             }
             if events.keyboard_state().is_scancode_pressed(Scancode::Backspace) {
                 self.search.pop();
@@ -313,6 +370,7 @@ impl searchButton{
                 match event {
                     Event::TextInput {text, ..} => {
                         self.search += &text;
+
                     }
                     _ => {}
                 }
@@ -469,7 +527,7 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
     }
     for searchButton in searchButtons.iter_mut() {
         searchButton.asButton().render(renderer, textureVec);
-        searchButton.render(renderer, textureVec);
+        searchButton.searchRender(renderer);
     }
 
     renderer.present();
@@ -510,6 +568,91 @@ fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButton
             );
             sceneButtons.push(sceneButton1);
             sceneButtons.push(sceneButton2);
+        }
+        "archive" => {
+            let surface = Surface::load_png("src/Assets/blank.png").unwrap();
+            textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
+            let homeButton = sceneChangeButton::new(
+                "home".to_string(),
+                20.0,
+                20.0,
+                240.0,
+                80.0,
+                1,
+                "Return".to_string(),
+                renderer,
+                textureVec
+            );
+            sceneButtons.push(homeButton);
+
+            for texturePos in 1..201 {
+                let mut magNum = texturePos.to_string();
+                if texturePos < 10 {
+                    magNum = "00".to_string() + texturePos.to_string().as_str();
+                } else if texturePos < 100 {
+                    magNum = "0".to_string() + texturePos.to_string().as_str();
+                }
+                let magName = "MAG".to_string() + magNum.as_str() + " - " + MAG_MAP[texturePos];
+                magButtons.push(magButton::new(
+                    magName.clone() + ".pdf",
+                    40.0,
+                    140.0 * texturePos as f32,
+                    meshBox.width - 80.0,
+                    80.0,
+                    texturePos as usize + 1,
+                    magName,
+                    renderer,
+                    textureVec
+                ))
+            }
+        }
+        "search" => {
+            let surface = Surface::load_png("src/Assets/blank.png").unwrap();
+            textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
+            let homeButton = sceneChangeButton::new(
+                "home".to_string(),
+                20.0,
+                20.0,
+                240.0,
+                80.0,
+                1,
+                "Return".to_string(),
+                renderer,
+                textureVec
+            );
+            sceneButtons.push(homeButton);
+
+            let searchButton = searchButton::new(
+                300.0,
+                20.0,
+                meshBox.width - 600.0,
+                80.0,
+                2,
+                renderer,
+                textureVec
+            );
+            searchButtons.push(searchButton);
+
+            for texturePos in 1..201 {
+                let mut magNum = texturePos.to_string();
+                if texturePos < 10 {
+                    magNum = "00".to_string() + texturePos.to_string().as_str();
+                } else if texturePos < 100 {
+                    magNum = "0".to_string() + texturePos.to_string().as_str();
+                }
+                let magName = "MAG".to_string() + magNum.as_str() + " - " + MAG_MAP[texturePos];
+                magButtons.push(magButton::new(
+                    magName.clone() + ".pdf",
+                    40.0,
+                    140.0 * texturePos as f32,
+                    meshBox.width - 80.0,
+                    80.0,
+                    texturePos as usize + 2,
+                    magName,
+                    renderer,
+                    textureVec
+                ))
+            };
         }
         _ => {}
     }
