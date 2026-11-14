@@ -6,12 +6,12 @@ pub mod buttonMod {
 
     pub(crate) struct button {
         x: f32,
-        y: f32,
+        pub(crate) y: f32,
         width: f32,
         height: f32,
         pub active: bool,
         pub pressed: bool,
-        hitbox: FRect,
+        pub(crate) hitbox: FRect,
         pub textRenderArea: FRect,
         text: String,
         pub texturePos: usize,

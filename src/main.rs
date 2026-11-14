@@ -66,7 +66,7 @@ const MAG_MAP: ConstMap<i32, &str, 256> = ConstMap::new([
     Bucket::Filled { key: 45, val: "Blood Bag" },
     Bucket::Filled { key: 46, val: "Literary Heights" },
     Bucket::Filled { key: 47, val: "The New Door" },
-    Bucket::Filled { key: 48, val: "Lost in The Crowd" },
+    Bucket::Filled { key: 48, val: "Lost In The Crowd" },
     Bucket::Filled { key: 49, val: "The Butcher's Window" },
     Bucket::Filled { key: 50, val: "Foundations" },
     Bucket::Filled { key: 51, val: "High Pressure" },
@@ -104,7 +104,7 @@ const MAG_MAP: ConstMap<i32, &str, 256> = ConstMap::new([
     Bucket::Filled { key: 83, val: "Drawing a Blank" },
     Bucket::Filled { key: 84, val: "Possessive" },
     Bucket::Filled { key: 85, val: "Upon the Stair" },
-    Bucket::Filled { key: 86, val: "Tucked in" },
+    Bucket::Filled { key: 86, val: "Tucked In" },
     Bucket::Filled { key: 87, val: "Uncanny Valley" },
     Bucket::Filled { key: 88, val: "Dig" },
     Bucket::Filled { key: 89, val: "Twice as Bright" },
@@ -384,7 +384,7 @@ impl searchButton{
     }
 
     fn search (&mut self, magButtons: &mut Vec<magButton>, ) {
-        for magButton in magButtons {
+        for magButton in magButtons.iter_mut() {
             let file = "src/Assets/MagnusArchivesTranscripts/".to_string() + &*magButton.file.clone();
             match Document::load(file.clone()) {
                 Ok(document) => {
@@ -398,8 +398,9 @@ impl searchButton{
                     }
 
                     for text in texts {
-                        if text.contains(self.search.as_str()) {
+                        if text.to_lowercase().contains(self.search.to_lowercase().as_str()) {
                             magButton.active = true;
+                            break;
                         }
                         else {
                             magButton.active = false;
@@ -410,6 +411,7 @@ impl searchButton{
             }
             println!("Finished: {}", file);
         }
+        orderButtons(magButtons);
     }
 }
 
@@ -460,6 +462,8 @@ fn main() {
 }
 
 fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
+    let mut upDownMovement = 0.0;
+    let mut maxHeight = 0.0;
     let mut mode = "home".to_string();
     let mut running = true;
     let mut textureVec = Vec::new();
@@ -473,7 +477,7 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
 
 
     while running {
-        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons);
+        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut upDownMovement, &maxHeight);
         update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec);
         render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons);
         if newEnv {
@@ -483,16 +487,24 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     }
 }
 
-fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>) {
+fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, upDownMovement: &mut f32, maxHeight: & f32) {
     let mut eventPump = sdl3::init().unwrap().event_pump().unwrap();
-    let mut search: String;
 
     for event in eventPump.poll_iter() {
         use sdl3::event::Event;
         match event {
             Event::Quit { .. } =>  {
                 *running = false;
-            },
+            }
+            Event::MouseWheel { y, .. } => {
+                *upDownMovement += y/10.0;
+                if *upDownMovement < 0.0 {
+                    *upDownMovement = 0.0;
+                }
+                if *upDownMovement > *maxHeight {
+                    *upDownMovement = *maxHeight;
+                }
+            }
             _ => {}
         }
     }
@@ -527,7 +539,9 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
     meshBox.render(&textureVec, renderer, window);
 
     for magButton in magButtons.iter_mut() {
-        magButton.asButton().render(renderer, textureVec, "".to_string())
+        if magButton.active {
+            magButton.asButton().render(renderer, textureVec, "".to_string())
+        }
     }
     for sceneButton in sceneButtons.iter_mut() {
         sceneButton.asButton().render(renderer, textureVec, "".to_string())
@@ -664,4 +678,17 @@ fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButton
         }
         _ => {}
     }
+}
+
+fn orderButtons (magButtons: &mut Vec<magButton>) -> f32 {
+    let mut maxHeight = 140.0;
+
+    for magButton in magButtons.iter_mut() {
+        if magButton.active {
+            magButton.asButton().hitbox.y = maxHeight;
+            maxHeight += 140.0;
+        }
+    }
+
+    maxHeight
 }
