@@ -5,10 +5,6 @@ pub mod buttonMod {
     use sdl3::render::{FPoint, FRect, Texture, WindowCanvas};
 
     pub(crate) struct button {
-        x: f32,
-        pub(crate) y: f32,
-        width: f32,
-        height: f32,
         pub active: bool,
         pub pressed: bool,
         pub(crate) hitbox: FRect,
@@ -27,11 +23,13 @@ pub mod buttonMod {
             let textTexture = renderer.create_texture_from_surface(&textSurface).unwrap();
 
             textureVec.push(textTexture);
-            button { x, y, width, height,  text,active: false, pressed: false, hitbox: FRect::new(x, y, width, height), textRenderArea: FRect::new(0.0,0.0,0.0,0.0), texturePos }
+            button {text,active: false, pressed: false, hitbox: FRect::new(x, y, width, height), textRenderArea: FRect::new(0.0,0.0,0.0,0.0), texturePos }
         }
 
-        pub(crate) fn input(&mut self, events: &EventPump) {
-            if frectContains(events.mouse_state().x(), events.mouse_state().y(), self.hitbox) {
+        pub(crate) fn input(&mut self, events: &EventPump, upDownMovement: f32) {
+            let mut usedHitbox = self.hitbox;
+            usedHitbox.y += upDownMovement;
+            if frectContains(events.mouse_state().x(), events.mouse_state().y(), usedHitbox) {
                 self.active = true;
             } else {
                 self.active = false;
@@ -92,12 +90,12 @@ pub mod buttonMod {
 
     pub(crate) trait buttonTrait {
         fn asButton(&mut self) -> &mut button;
-        fn input(&mut self, events: &EventPump) {
-            self.asButton().input(events);
+        fn input(&mut self, events: &EventPump, upDownMovement: f32) {
+           self.asButton().input(events, upDownMovement);
         }
 
         fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String, upDownMovement: f32) {
-            self.asButton().render(renderer, textureVec, search);
+           self.asButton().render(renderer, textureVec, search, upDownMovement);
         }
     }
     fn frectContains (pointX: f32, pointY: f32, rect: FRect) -> bool{

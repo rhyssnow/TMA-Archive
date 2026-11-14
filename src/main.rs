@@ -6,7 +6,6 @@ mod buttonFile;
 use std::path::Path;
 use std::time::Instant;
 use sdl3::EventPump;
-use sdl3::gamepad::Button;
 use sdl3::keyboard::{Scancode};
 use sdl3::pixels::Color;
 use crate::buttonFile::buttonMod::buttonTrait;
@@ -15,7 +14,6 @@ use sdl3::render::{create_renderer, WindowCanvas, Texture, FRect};
 use sdl3::surface::Surface;
 use sdl3::video::Window;
 use lopdf::Document;
-use sdl3::event::Event;
 use const_hashmap::{ConstMap, Bucket};
 
 const MAG_MAP: ConstMap<i32, &str, 256> = ConstMap::new([
@@ -301,7 +299,6 @@ impl sceneChangeButton{
 struct searchButton {
     search: String,
     clickedIn: bool,
-    results: Vec<String>,
     cursorBlink: Instant,
     inputLatency: Instant,
     renderCursor: bool,
@@ -315,7 +312,7 @@ impl buttonTrait for searchButton{
 }
 
 impl searchButton{
-    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, results: Vec::new(), cursorBlink: Instant::now(), inputLatency: Instant::now(), renderCursor: true, button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
+    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, cursorBlink: Instant::now(), inputLatency: Instant::now(), renderCursor: true, button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
 
     fn searchRender (&mut self, renderer: &mut WindowCanvas) {
         if self.cursorBlink.elapsed().as_millis() > 400 {
@@ -463,7 +460,7 @@ fn main() {
 
 fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     let mut upDownMovement = 0.0;
-    let mut maxHeight = 0.0;
+    let maxHeight = -14000.0;
     let mut mode = "home".to_string();
     let mut running = true;
     let mut textureVec = Vec::new();
@@ -479,7 +476,7 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     while running {
         input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut upDownMovement, &maxHeight);
         update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec);
-        render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons);
+        render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons, upDownMovement);
         if newEnv {
             setupEnvironment(&mode, &mut magButtons, &mut sceneButtons, &mut searchButtons, &meshBox, &mut textureVec, renderer);
             newEnv = false;
@@ -497,11 +494,11 @@ fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &m
                 *running = false;
             }
             Event::MouseWheel { y, .. } => {
-                *upDownMovement += y/10.0;
-                if *upDownMovement < 0.0 {
+                *upDownMovement += y*50.0;
+                if *upDownMovement > 0.0 {
                     *upDownMovement = 0.0;
                 }
-                if *upDownMovement > *maxHeight {
+                if *upDownMovement < *maxHeight {
                     *upDownMovement = *maxHeight;
                 }
             }
@@ -509,13 +506,13 @@ fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &m
         }
     }
     for magButton in magButtons.iter_mut() {
-        magButton.asButton().input(&eventPump)
+        magButton.asButton().input(&eventPump, *upDownMovement)
     }
     for sceneButton in sceneButtons.iter_mut() {
-        sceneButton.asButton().input(&eventPump)
+        sceneButton.asButton().input(&eventPump, *upDownMovement)
     }
     for searchButton in searchButtons.iter_mut() {
-        searchButton.asButton().input(&eventPump);
+        searchButton.asButton().input(&eventPump, *upDownMovement);
         searchButton.searchInput(&mut eventPump, magButtons);
     }
 }
@@ -532,7 +529,7 @@ fn update (magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton
     }
 }
 
-fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<Texture>, window: &Window, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>) {
+fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<Texture>, window: &Window, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, upDownMovement: f32) {
     renderer.set_draw_color(Color::RGB(0, 0, 0));
     renderer.clear();
 
@@ -540,15 +537,15 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
 
     for magButton in magButtons.iter_mut() {
         if magButton.active {
-            magButton.asButton().render(renderer, textureVec, "".to_string())
+            magButton.asButton().render(renderer, textureVec, "".to_string(), upDownMovement)
         }
     }
     for sceneButton in sceneButtons.iter_mut() {
-        sceneButton.asButton().render(renderer, textureVec, "".to_string())
+        sceneButton.asButton().render(renderer, textureVec, "".to_string(), 0.0)
     }
     for searchButton in searchButtons.iter_mut() {
         let search = searchButton.search.clone();
-        searchButton.asButton().render(renderer, textureVec, search);
+        searchButton.asButton().render(renderer, textureVec, search, 0.0);
         searchButton.searchRender(renderer);
     }
 
