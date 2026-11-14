@@ -43,7 +43,7 @@ pub mod buttonMod {
             }
         }
 
-        pub(crate) fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String) {
+        pub(crate) fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String, upDownMovement: f32) {
             let radius = self.hitbox.h / 2.0;
             let borderColor = match self.active {
                 true => Color::RGB(200, 200, 200),
@@ -55,7 +55,7 @@ pub mod buttonMod {
             };
             let mut rectRenderRect = FRect::new(
                 self.hitbox.x + radius,
-                self.hitbox.y,
+                self.hitbox.y + upDownMovement,
                 self.hitbox.w - self.hitbox.h,
                 self.hitbox.h + 1.0
             );
@@ -96,7 +96,7 @@ pub mod buttonMod {
             self.asButton().input(events);
         }
 
-        fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String) {
+        fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String, upDownMovement: f32) {
             self.asButton().render(renderer, textureVec, search);
         }
     }

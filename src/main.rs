@@ -368,7 +368,7 @@ impl searchButton{
             let keyboardState = events.keyboard_state();
             if self.inputLatency.elapsed().as_millis() > 90 {
                 for scancode in keyboardState.pressed_scancodes() {
-                    if scancode != Scancode::Return && scancode != Scancode::Backspace && scancode != Scancode::Space && self.search.len() < 45 {
+                    if scancode != Scancode::Return && scancode != Scancode::Backspace && scancode != Scancode::Space && self.search.len() < 45 && scancode.to_string().len() < 2 {
                         self.search += &*scancode.to_string();
                     }
                     self.inputLatency = Instant::now();
