@@ -467,7 +467,7 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     let mut textureVec = Vec::new();
     let surface = Surface::load_bmp("src/Assets/magnusbackground.bmp").unwrap();
     textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
-    let mut meshBox = meshBox::new(window.size_in_pixels().0 as f32, window.size_in_pixels().1 as f32);
+    let mut meshBox = meshBox::new(1920.0, 1080.0);
     let mut newEnv = true;
     let mut magButtons = Vec::new();
     let mut sceneButtons = Vec::new();
@@ -476,7 +476,6 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     let path = Path::new("src/Assets/DovesTypeText-Regular.ttf");
     let ttfContext = sdl3::ttf::init().map_err(|e| e.to_string()).unwrap();
     let font = ttfContext.load_font(path, 100.0).expect("SDL_TTF failed to load font.");
-
 
     while running {
         input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &meshBox, &window, &mut upDownMovement, &mut upDownMovementGoal, &mut speed, &mut maxHeight);
@@ -580,7 +579,7 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
         let blackbox = FRect::new(
             0.0,
             0.0,
-            meshBox.width,
+            window.size_in_pixels().0 as f32,
             sceneButtons[0].asButton().hitbox.h * (window.size_in_pixels().0 as f32 / meshBox.width) + sceneButtons[0].asButton().hitbox.x * (window.size_in_pixels().0 as f32 / meshBox.width) * 2.0
         );
         renderer.set_draw_color(Color::RGB(0, 0, 0));

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-sdl3 = { version = "0.20.0", features = ["build-from-source", "ttf", "unsafe_textures"] }
+sdl3 = { version = "0.22.1", features = ["build-from-source", "ttf", "unsafe_textures"] }
 const_hashmap = "0.1.0"
 lopdf = "0.47.0"
 rayon = "1.12.0"
