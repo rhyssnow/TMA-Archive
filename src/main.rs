@@ -1,6 +1,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
+use rayon::iter::ParallelIterator;
 mod buttonFile;
 
 use std::path::Path;
@@ -10,11 +11,13 @@ use sdl3::keyboard::{Scancode};
 use sdl3::pixels::Color;
 use crate::buttonFile::buttonMod::buttonTrait;
 use crate::buttonFile::buttonMod::button;
+use rayon::prelude;
 use sdl3::render::{create_renderer, WindowCanvas, Texture, FRect};
 use sdl3::surface::Surface;
 use sdl3::video::Window;
-use lopdf::Document;
+use lopdf::{Document, Object, ObjectId};
 use const_hashmap::{ConstMap, Bucket};
+use rayon::prelude::IntoParallelRefMutIterator;
 
 const MAG_MAP: ConstMap<i32, &str, 256> = ConstMap::new([
     Bucket::Filled { key: 1, val: "Anglerfish" },
@@ -352,13 +355,13 @@ impl searchButton{
         textureVec[self.asButton().texturePos] = textTexture;
     }
 
-    fn searchInput (&mut self, events: &mut EventPump, magButtons: &mut Vec<magButton>, ){
+    fn searchInput (&mut self, events: &mut EventPump, magButtons: &mut Vec<magButton>, maxHeight: &mut f32){
         if self.clickedIn {
             if !self.asButton().active && events.mouse_state().left(){
                 self.clickedIn = false;
             }
             if events.keyboard_state().is_scancode_pressed(Scancode::Return) {
-                self.search(magButtons);
+                self.search(magButtons, maxHeight);
                 self.search.clear();
                 self.clickedIn = false;
             }
@@ -380,22 +383,17 @@ impl searchButton{
         }
     }
 
-    fn search (&mut self, magButtons: &mut Vec<magButton>, ) {
-        for magButton in magButtons.iter_mut() {
-            let file = "src/Assets/MagnusArchivesTranscripts/".to_string() + &*magButton.file.clone();
+    fn search (&mut self, magButtons: &mut Vec<magButton>, maxHeight: &mut f32) {
+        magButtons.par_iter_mut().for_each(move |magButton| {
+            let file = "src/Assets/MagnusArchivesTranscripts/".to_string() + &*magButton.file;
             match Document::load(file.clone()) {
                 Ok(document) => {
-                    let pages = document.get_pages();
-                    let mut texts = Vec::new();
 
+                    let pages = document.get_pages();
                     for (i, _) in pages.iter().enumerate() {
                         let page_number = (i + 1) as u32;
                         let text = document.extract_text(&[page_number]);
-                        texts.push(text.unwrap_or_default());
-                    }
-
-                    for text in texts {
-                        if text.to_lowercase().contains(self.search.to_lowercase().as_str()) {
+                        if text.unwrap().to_lowercase().contains(self.search.to_lowercase().as_str()) {
                             magButton.active = true;
                             break;
                         }
@@ -406,12 +404,14 @@ impl searchButton{
                 }
                 Err(err) => eprintln!("Error: {}", err),
             }
-            println!("Finished: {}", file);
-        }
-        orderButtons(magButtons);
+
+        });
+        *maxHeight = orderButtons(magButtons);
+
     }
 }
 
+#[derive(Clone)]
 struct magButton {
     file: String,
     button: button,
@@ -460,7 +460,7 @@ fn main() {
 
 fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     let mut upDownMovement = 0.0;
-    let maxHeight = -14000.0;
+    let mut maxHeight = -14000.0;
     let mut mode = "home".to_string();
     let mut running = true;
     let mut textureVec = Vec::new();
@@ -474,17 +474,17 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
 
 
     while running {
-        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut upDownMovement, &maxHeight);
+        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut upDownMovement, &mut maxHeight);
         update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec);
-        render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons, upDownMovement);
+        render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons, upDownMovement, & mode);
         if newEnv {
-            setupEnvironment(&mode, &mut magButtons, &mut sceneButtons, &mut searchButtons, &meshBox, &mut textureVec, renderer);
+            setupEnvironment(&mode, &mut magButtons, &mut sceneButtons, &mut searchButtons, &meshBox, &mut textureVec, renderer, &mut maxHeight);
             newEnv = false;
         }
     }
 }
 
-fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, upDownMovement: &mut f32, maxHeight: & f32) {
+fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, upDownMovement: &mut f32, maxHeight: &mut f32) {
     let mut eventPump = sdl3::init().unwrap().event_pump().unwrap();
 
     for event in eventPump.poll_iter() {
@@ -509,11 +509,11 @@ fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &m
         magButton.asButton().input(&eventPump, *upDownMovement)
     }
     for sceneButton in sceneButtons.iter_mut() {
-        sceneButton.asButton().input(&eventPump, *upDownMovement)
+        sceneButton.asButton().input(&eventPump, 0.0)
     }
     for searchButton in searchButtons.iter_mut() {
-        searchButton.asButton().input(&eventPump, *upDownMovement);
-        searchButton.searchInput(&mut eventPump, magButtons);
+        searchButton.asButton().input(&eventPump, 0.0);
+        searchButton.searchInput(&mut eventPump, magButtons, maxHeight);
     }
 }
 
@@ -529,7 +529,7 @@ fn update (magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton
     }
 }
 
-fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<Texture>, window: &Window, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, upDownMovement: f32) {
+fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<Texture>, window: &Window, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, upDownMovement: f32, mode: &String) {
     renderer.set_draw_color(Color::RGB(0, 0, 0));
     renderer.clear();
 
@@ -540,6 +540,18 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
             magButton.asButton().render(renderer, textureVec, "".to_string(), upDownMovement)
         }
     }
+
+    if *mode == "archive" || *mode == "search" {
+        let blackbox = FRect::new(
+            0.0,
+            0.0,
+            meshBox.width,
+            140.0
+        );
+        renderer.set_draw_color(Color::RGB(0, 0, 0));
+        renderer.fill_rect(blackbox).unwrap();
+    }
+
     for sceneButton in sceneButtons.iter_mut() {
         sceneButton.asButton().render(renderer, textureVec, "".to_string(), 0.0)
     }
@@ -552,7 +564,7 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
     renderer.present();
 }
 
-fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButtons: &mut Vec<sceneChangeButton>, searchButtons: &mut Vec<searchButton>, meshBox: & meshBox, textureVec: &mut Vec<Texture>, renderer: &mut WindowCanvas) {
+fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButtons: &mut Vec<sceneChangeButton>, searchButtons: &mut Vec<searchButton>, meshBox: & meshBox, textureVec: &mut Vec<Texture>, renderer: &mut WindowCanvas, maxHeight: &mut f32) {
     magButtons.clear();
     sceneButtons.clear();
     searchButtons.clear();
@@ -624,6 +636,7 @@ fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButton
                     textureVec
                 ))
             }
+            *maxHeight = orderButtons(magButtons);
         }
         "search" => {
             let surface = Surface::load_png("src/Assets/blank.png").unwrap();
@@ -672,6 +685,7 @@ fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButton
                     textureVec
                 ))
             };
+            *maxHeight = orderButtons(magButtons);
         }
         _ => {}
     }
@@ -687,5 +701,7 @@ fn orderButtons (magButtons: &mut Vec<magButton>) -> f32 {
         }
     }
 
-    maxHeight
+    maxHeight -= 140.0*8.0;
+
+    -maxHeight
 }

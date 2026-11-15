@@ -4,6 +4,7 @@ pub mod buttonMod {
     use sdl3::pixels::Color;
     use sdl3::render::{FPoint, FRect, Texture, WindowCanvas};
 
+    #[derive(Clone)]
     pub(crate) struct button {
         pub active: bool,
         pub pressed: bool,
