@@ -145,6 +145,7 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                     magNum = "0".to_string() + texturePos.to_string().as_str();
                 }
                 let magName = "MAG".to_string() + magNum.as_str() + " - " + MAG_MAP[texturePos];
+
                 magButtons.push(magButton::new(
                     magName.clone() + ".pdf",
                     40.0,
@@ -156,8 +157,9 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                     renderer,
                     textureVec,
                     font
-                ))
+                ));
             };
+
             *maxHeight = orderButtons(magButtons);
         }
         _ => {}

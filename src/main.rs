@@ -442,10 +442,7 @@ struct meshBox {
 
 impl meshBox {
     pub fn new( width: f32, height: f32) -> meshBox {meshBox{ width, height, texturePos: 0}}
-    pub fn render(&mut self, textureVec: &Vec<Texture>, renderer: &mut WindowCanvas, window: &Window) {
-        self.width = window.size_in_pixels().0 as f32;
-        self.height = window.size_in_pixels().1 as f32;
-
+    pub fn render(&mut self, textureVec: &Vec<Texture>, renderer: &mut WindowCanvas) {
         renderer.copy(&textureVec[self.texturePos], None, None).unwrap();
     }
 }
@@ -480,7 +477,7 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
 
 
     while running {
-        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut upDownMovement, &mut maxHeight);
+        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &meshBox, &window, &mut upDownMovement, &mut maxHeight);
         update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec, &font);
         render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons, upDownMovement, & mode);
 
@@ -491,7 +488,7 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     }
 }
 
-fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, upDownMovement: &mut f32, maxHeight: &mut f32) {
+fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, meshBox: &meshBox, window: &Window, upDownMovement: &mut f32, maxHeight: &mut f32) {
     let mut eventPump = sdl3::init().unwrap().event_pump().unwrap();
 
     for event in eventPump.poll_iter() {
@@ -514,14 +511,14 @@ fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &m
     }
     for magButton in magButtons.iter_mut() {
         if magButton.active {
-            magButton.asButton().input(&eventPump, *upDownMovement)
+            magButton.asButton().input(&eventPump, *upDownMovement, window, meshBox)
         }
     }
     for sceneButton in sceneButtons.iter_mut() {
-        sceneButton.asButton().input(&eventPump, 0.0)
+        sceneButton.asButton().input(&eventPump, 0.0, window, meshBox)
     }
     for searchButton in searchButtons.iter_mut() {
-        searchButton.asButton().input(&eventPump, 0.0);
+        searchButton.asButton().input(&eventPump, 0.0, window, meshBox);
         searchButton.searchInput(&mut eventPump, magButtons, maxHeight, upDownMovement);
     }
 }
@@ -544,11 +541,11 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
     renderer.set_draw_color(Color::RGB(0, 0, 0));
     renderer.clear();
 
-    meshBox.render(&textureVec, renderer, window);
+    meshBox.render(&textureVec, renderer);
 
     for magButton in magButtons.iter_mut() {
         if magButton.active {
-            magButton.asButton().render(renderer, textureVec, "".to_string(), upDownMovement)
+            magButton.asButton().render(renderer, textureVec, "".to_string(), upDownMovement, meshBox, window)
         }
     }
 
@@ -557,18 +554,18 @@ fn render( renderer: &mut WindowCanvas, meshBox: &mut meshBox, textureVec: &Vec<
             0.0,
             0.0,
             meshBox.width,
-            140.0
+            sceneButtons[0].asButton().hitbox.h * (window.size_in_pixels().0 as f32 / meshBox.width) + sceneButtons[0].asButton().hitbox.x * (window.size_in_pixels().0 as f32 / meshBox.width) * 2.0
         );
         renderer.set_draw_color(Color::RGB(0, 0, 0));
         renderer.fill_rect(blackbox).unwrap();
     }
 
     for sceneButton in sceneButtons.iter_mut() {
-        sceneButton.asButton().render(renderer, textureVec, "".to_string(), 0.0)
+        sceneButton.asButton().render(renderer, textureVec, "".to_string(), 0.0, meshBox, window);
     }
     for searchButton in searchButtons.iter_mut() {
         let search = searchButton.search.clone();
-        searchButton.asButton().render(renderer, textureVec, search, 0.0);
+        searchButton.asButton().render(renderer, textureVec, search, 0.0, meshBox, window);
         searchButton.searchRender(renderer);
     }
 

@@ -1,9 +1,10 @@
 pub mod buttonMod {
-    use std::path::Path;
     use sdl3::EventPump;
     use sdl3::pixels::Color;
     use sdl3::render::{FPoint, FRect, Texture, WindowCanvas};
     use sdl3::ttf::Font;
+    use sdl3::video::Window;
+    use crate::meshBox;
 
     #[derive(Clone)]
     pub(crate) struct button {
@@ -26,8 +27,13 @@ pub mod buttonMod {
             button {text,active: false, pressed: false, hitbox: FRect::new(x, y, width, height), textRenderArea: FRect::new(0.0,0.0,0.0,0.0), texturePos }
         }
 
-        pub(crate) fn input(&mut self, events: &EventPump, upDownMovement: f32) {
-            let mut usedHitbox = self.hitbox;
+        pub(crate) fn input(&mut self, events: &EventPump, upDownMovement: f32, window: &Window, meshBox: &meshBox) {
+            let mut usedHitbox = FRect::new(
+                self.hitbox.x * (window.size_in_pixels().0 as f32 / meshBox.width),
+                self.hitbox.y * (window.size_in_pixels().1 as f32 / meshBox.height),
+                self.hitbox.w * (window.size_in_pixels().0 as f32 / meshBox.width),
+                self.hitbox.h * (window.size_in_pixels().1 as f32 / meshBox.height)
+            );
             usedHitbox.y += upDownMovement;
             if frectContains(events.mouse_state().x(), events.mouse_state().y(), usedHitbox) {
                 self.active = true;
@@ -41,8 +47,14 @@ pub mod buttonMod {
             }
         }
 
-        pub(crate) fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String, upDownMovement: f32) {
-            let radius = self.hitbox.h / 2.0;
+        pub(crate) fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String, upDownMovement: f32, meshBox: &meshBox, window: &Window) {
+            let usedHitbox = FRect::new(
+                self.hitbox.x * (window.size_in_pixels().0 as f32 / meshBox.width),
+                self.hitbox.y * (window.size_in_pixels().1 as f32 / meshBox.height),
+                self.hitbox.w * (window.size_in_pixels().0 as f32 / meshBox.width),
+                self.hitbox.h * (window.size_in_pixels().1 as f32 / meshBox.height)
+             );
+            let radius = usedHitbox.h / 2.0;
             let borderColor = match self.active {
                 true => Color::RGB(200, 200, 200),
                 false => Color::RGB(150, 150, 150)
@@ -52,10 +64,10 @@ pub mod buttonMod {
                 false => Color::RGB(75, 75, 75)
             };
             let mut rectRenderRect = FRect::new(
-                self.hitbox.x + radius,
-                self.hitbox.y + upDownMovement,
-                self.hitbox.w - self.hitbox.h,
-                self.hitbox.h + 1.0
+                usedHitbox.x + radius,
+                usedHitbox.y + upDownMovement,
+                usedHitbox.w - usedHitbox.h,
+                usedHitbox.h + 1.0
             );
             renderCircle(renderer, rectRenderRect.x, rectRenderRect.y + radius, radius, borderColor);
             renderCircle(renderer, rectRenderRect.x + rectRenderRect.w, rectRenderRect.y + radius, radius, borderColor);
@@ -90,13 +102,6 @@ pub mod buttonMod {
 
     pub(crate) trait buttonTrait {
         fn asButton(&mut self) -> &mut button;
-        fn input(&mut self, events: &EventPump, upDownMovement: f32) {
-           self.asButton().input(events, upDownMovement);
-        }
-
-        fn render(&mut self, renderer: &mut WindowCanvas, textureVec: &Vec<Texture>, search: String, upDownMovement: f32) {
-           self.asButton().render(renderer, textureVec, search, upDownMovement);
-        }
     }
     fn frectContains (pointX: f32, pointY: f32, rect: FRect) -> bool{
         let mut isWithin = true;
