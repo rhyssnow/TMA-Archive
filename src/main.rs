@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::fs;
+use std::{fs, thread};
 use rayon::iter::ParallelIterator;
 mod buttonFile;
 mod environmentalHandling;
@@ -18,7 +18,7 @@ use crate::environmentalHandling::orderButtons;
 use sdl3::render::{create_renderer, WindowCanvas, Texture, FRect};
 use sdl3::surface::Surface;
 use sdl3::video::Window;
-use lopdf::{Document, Object, ObjectId};
+use open::that;
 use const_hashmap::{ConstMap, Bucket};
 use rayon::prelude::IntoParallelRefMutIterator;
 
@@ -418,9 +418,12 @@ impl buttonTrait for magButton{
 impl magButton {
     fn new(file: String, x: f32, y: f32, width: f32, height: f32, texturePos: usize, text: String, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> magButton{magButton{file, active: true, button: button::new( x, y, width, height, texturePos, textureVec, text, renderer)}}
 
-    fn update (&mut self, mode: &mut String) {
+    fn update (&mut self) {
         if self.asButton().pressed {
-            *mode = "viewer/".to_string() + &*self.file.clone();
+            let cloneFile = self.file.clone();
+            thread::spawn( move || {
+                that("src/Assets/MagnusArchivesTranscripts/".to_string() + cloneFile.as_str()).unwrap();
+            });
         }
     }
 }
@@ -513,7 +516,7 @@ fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &m
 
 fn update (magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, mode: &mut String, newEnv: &mut bool, renderer: &mut WindowCanvas, textureVec: &mut Vec<Texture>) {
     for magButton in magButtons.iter_mut() {
-        magButton.update(mode);
+        magButton.update();
     }
     for sceneButton in sceneButtons.iter_mut() {
         sceneButton.update(mode, newEnv);

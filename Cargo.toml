@@ -8,3 +8,4 @@ sdl3 = { version = "0.20.0", features = ["build-from-source", "ttf", "unsafe_tex
 const_hashmap = "0.1.0"
 lopdf = "0.47.0"
 rayon = "1.12.0"
+open = "5.4.5"
