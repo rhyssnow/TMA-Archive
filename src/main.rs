@@ -21,6 +21,7 @@ use sdl3::video::Window;
 use open::that;
 use const_hashmap::{ConstMap, Bucket};
 use rayon::prelude::IntoParallelRefMutIterator;
+use sdl3::ttf::Font;
 
 const MAG_MAP: ConstMap<i32, &str, 256> = ConstMap::new([
     Bucket::Filled { key: 1, val: "Anglerfish" },
@@ -293,7 +294,7 @@ impl buttonTrait for sceneChangeButton{
 }
 
 impl sceneChangeButton{
-    fn new(changeTo: String, x: f32, y: f32, width: f32, height: f32, texturePos: usize, text: String, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> sceneChangeButton{ sceneChangeButton{changeTo, button: button::new( x, y, width, height, texturePos, textureVec, text, renderer)} }
+    fn new(changeTo: String, x: f32, y: f32, width: f32, height: f32, texturePos: usize, text: String, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>, font: &Font) -> sceneChangeButton{ sceneChangeButton{changeTo, button: button::new( x, y, width, height, texturePos, textureVec, text, renderer, font)} }
     fn update(&mut self, mode: &mut String, newEnv: &mut bool) {
         if self.asButton().pressed{
             *mode = self.changeTo.clone();
@@ -302,13 +303,15 @@ impl sceneChangeButton{
     }
 }
 
+#[derive(Clone)]
 struct searchButton {
     search: String,
     clickedIn: bool,
     cursorBlink: Instant,
     inputLatency: Instant,
     renderCursor: bool,
-    button: button
+    button: button,
+    searchChanged: bool,
 }
 
 impl buttonTrait for searchButton{
@@ -318,7 +321,7 @@ impl buttonTrait for searchButton{
 }
 
 impl searchButton{
-    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, cursorBlink: Instant::now(), inputLatency: Instant::now(), renderCursor: true, button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer)}}
+    fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>, font: &Font) -> searchButton{searchButton{search: "".to_string(), clickedIn: false, cursorBlink: Instant::now(), inputLatency: Instant::now(), renderCursor: true, searchChanged: false, button: button::new( x, y, width, height, texturePos, textureVec, "search".to_string(), renderer, font)}}
 
     fn searchRender (&mut self, renderer: &mut WindowCanvas) {
         if self.cursorBlink.elapsed().as_millis() > 400 {
@@ -336,29 +339,30 @@ impl searchButton{
             renderer.fill_rect(cursorBox).unwrap();
         }
     }
-    fn update(&mut self, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>){
-        let path = Path::new("src/Assets/DovesTypeText-Regular.ttf");
-        let ttfContext = sdl3::ttf::init().map_err(|e| e.to_string()).unwrap();
-        let font = ttfContext.load_font(path, 100.0).expect("SDL_TTF failed to load font.");
-
+    fn update(&mut self, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>, font: &Font){
         if self.asButton().pressed {
             self.clickedIn = true;
         }
 
-        let textSurface: Surface;
+        if self.searchChanged {
+            let textSurface: Surface;
 
-        if self.search.is_empty() {
-            textSurface = font.render("search").blended(Color::RGB(200, 200, 200)).unwrap();
-        }
-        else {
-            textSurface = font.render(&*self.search).blended(Color::RGB(255, 255, 255)).unwrap();
-        }
-        let textTexture = renderer.create_texture_from_surface(&textSurface).unwrap();
+            if self.search.is_empty() {
+                textSurface = font.render("search").blended(Color::RGB(200, 200, 200)).unwrap();
+            } else {
+                textSurface = font.render(&*self.search).blended(Color::RGB(255, 255, 255)).unwrap();
+            }
+            let textTexture = renderer.create_texture_from_surface(&textSurface).unwrap();
 
-        textureVec[self.asButton().texturePos] = textTexture;
+            drop(textSurface);
+
+            textureVec.remove(self.asButton().texturePos);
+            textureVec.insert(self.asButton().texturePos, textTexture);
+        }
     }
 
-    fn searchInput (&mut self, events: &mut EventPump, magButtons: &mut Vec<magButton>, maxHeight: &mut f32){
+    fn searchInput (&mut self, events: &mut EventPump, magButtons: &mut Vec<magButton>, maxHeight: &mut f32, upDownMovement: &mut f32){
+        self.searchChanged = false;
         if self.clickedIn {
             if !self.asButton().active && events.mouse_state().left(){
                 self.clickedIn = false;
@@ -366,6 +370,7 @@ impl searchButton{
             if events.keyboard_state().is_scancode_pressed(Scancode::Return) {
                 self.search(magButtons, maxHeight);
                 self.search.clear();
+                *upDownMovement = 0.0;
                 self.clickedIn = false;
             }
             let keyboardState = events.keyboard_state();
@@ -375,6 +380,7 @@ impl searchButton{
                         self.search += &*scancode.to_string();
                     }
                     self.inputLatency = Instant::now();
+                    self.searchChanged = true;
                 }
                 if events.keyboard_state().is_scancode_pressed(Scancode::Space) {
                     self.search += " ";
@@ -416,7 +422,7 @@ impl buttonTrait for magButton{
 }
 
 impl magButton {
-    fn new(file: String, x: f32, y: f32, width: f32, height: f32, texturePos: usize, text: String, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>) -> magButton{magButton{file, active: true, button: button::new( x, y, width, height, texturePos, textureVec, text, renderer)}}
+    fn new(file: String, x: f32, y: f32, width: f32, height: f32, texturePos: usize, text: String, renderer: &WindowCanvas, textureVec: &mut Vec<Texture>, font: &Font) -> magButton{magButton{file, active: true, button: button::new( x, y, width, height, texturePos, textureVec, text, renderer, font)}}
 
     fn update (&mut self) {
         if self.asButton().pressed {
@@ -468,14 +474,18 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     let mut sceneButtons = Vec::new();
     let mut searchButtons = Vec::new();
 
+    let path = Path::new("src/Assets/DovesTypeText-Regular.ttf");
+    let ttfContext = sdl3::ttf::init().map_err(|e| e.to_string()).unwrap();
+    let font = ttfContext.load_font(path, 100.0).expect("SDL_TTF failed to load font.");
+
 
     while running {
         input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut upDownMovement, &mut maxHeight);
-        update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec);
+        update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec, &font);
         render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons, upDownMovement, & mode);
 
         if newEnv {
-            setupEnvironment(&mode, &mut magButtons, &mut sceneButtons, &mut searchButtons, &meshBox, &mut textureVec, renderer, &mut maxHeight);
+            setupEnvironment(&mode, &mut magButtons, &mut sceneButtons, &mut searchButtons, &meshBox, &mut textureVec, renderer, &mut maxHeight, &font);
             newEnv = false;
         }
     }
@@ -503,26 +513,30 @@ fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &m
         }
     }
     for magButton in magButtons.iter_mut() {
-        magButton.asButton().input(&eventPump, *upDownMovement)
+        if magButton.active {
+            magButton.asButton().input(&eventPump, *upDownMovement)
+        }
     }
     for sceneButton in sceneButtons.iter_mut() {
         sceneButton.asButton().input(&eventPump, 0.0)
     }
     for searchButton in searchButtons.iter_mut() {
         searchButton.asButton().input(&eventPump, 0.0);
-        searchButton.searchInput(&mut eventPump, magButtons, maxHeight);
+        searchButton.searchInput(&mut eventPump, magButtons, maxHeight, upDownMovement);
     }
 }
 
-fn update (magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, mode: &mut String, newEnv: &mut bool, renderer: &mut WindowCanvas, textureVec: &mut Vec<Texture>) {
+fn update (magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, mode: &mut String, newEnv: &mut bool, renderer: &mut WindowCanvas, textureVec: &mut Vec<Texture>, font: &Font) {
     for magButton in magButtons.iter_mut() {
-        magButton.update();
+        if magButton.active {
+            magButton.update();
+        }
     }
     for sceneButton in sceneButtons.iter_mut() {
         sceneButton.update(mode, newEnv);
     }
     for searchButton in searchButtons.iter_mut() {
-        searchButton.update(renderer, textureVec);
+        searchButton.update(renderer, textureVec, font);
     }
 }
 

@@ -3,6 +3,7 @@ use sdl3::surface::Surface;
 use std::fs;
 use std::io::Write;
 use lopdf::Document;
+use sdl3::ttf::Font;
 use crate::{magButton, meshBox, sceneChangeButton, searchButton, MAG_MAP};
 use crate::buttonFile::buttonMod::buttonTrait;
 
@@ -26,7 +27,7 @@ pub fn setupFiles() {
     }
 }
 
-pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButtons: &mut Vec<sceneChangeButton>, searchButtons: &mut Vec<searchButton>, meshBox: & meshBox, textureVec: &mut Vec<Texture>, renderer: &mut WindowCanvas, maxHeight: &mut f32) {
+pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneButtons: &mut Vec<sceneChangeButton>, searchButtons: &mut Vec<searchButton>, meshBox: & meshBox, textureVec: &mut Vec<Texture>, renderer: &mut WindowCanvas, maxHeight: &mut f32, font: &Font) {
     magButtons.clear();
     sceneButtons.clear();
     searchButtons.clear();
@@ -36,6 +37,7 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
         "home" => {
             let surface = Surface::load_bmp("src/Assets/magnusbackground.bmp").unwrap();
             textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
+            drop(surface);
 
             let sceneButton1 = sceneChangeButton::new(
                 "archive".to_string(),
@@ -46,7 +48,8 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                 1,
                 "Archive".to_string(),
                 renderer,
-                textureVec
+                textureVec,
+                font
             );
             let sceneButton2 = sceneChangeButton::new(
                 "search".to_string(),
@@ -57,7 +60,8 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                 2,
                 "Search".to_string(),
                 renderer,
-                textureVec
+                textureVec,
+                font
             );
             sceneButtons.push(sceneButton1);
             sceneButtons.push(sceneButton2);
@@ -65,6 +69,7 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
         "archive" => {
             let surface = Surface::load_png("src/Assets/blank.png").unwrap();
             textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
+            drop(surface);
             let homeButton = sceneChangeButton::new(
                 "home".to_string(),
                 20.0,
@@ -74,7 +79,8 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                 1,
                 "Return".to_string(),
                 renderer,
-                textureVec
+                textureVec,
+                font
             );
             sceneButtons.push(homeButton);
 
@@ -95,7 +101,8 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                     texturePos as usize + 1,
                     magName,
                     renderer,
-                    textureVec
+                    textureVec,
+                    font
                 ))
             }
             *maxHeight = orderButtons(magButtons);
@@ -103,6 +110,7 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
         "search" => {
             let surface = Surface::load_png("src/Assets/blank.png").unwrap();
             textureVec.push(renderer.create_texture_from_surface(&surface).unwrap());
+            drop(surface);
             let homeButton = sceneChangeButton::new(
                 "home".to_string(),
                 20.0,
@@ -112,7 +120,8 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                 1,
                 "Return".to_string(),
                 renderer,
-                textureVec
+                textureVec,
+                font
             );
             sceneButtons.push(homeButton);
 
@@ -123,7 +132,8 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                 80.0,
                 2,
                 renderer,
-                textureVec
+                textureVec,
+                font
             );
             searchButtons.push(searchButton);
 
@@ -144,7 +154,8 @@ pub fn setupEnvironment (mode: &String, magButtons: &mut Vec<magButton>, sceneBu
                     texturePos as usize + 2,
                     magName,
                     renderer,
-                    textureVec
+                    textureVec,
+                    font
                 ))
             };
             *maxHeight = orderButtons(magButtons);

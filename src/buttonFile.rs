@@ -3,6 +3,7 @@ pub mod buttonMod {
     use sdl3::EventPump;
     use sdl3::pixels::Color;
     use sdl3::render::{FPoint, FRect, Texture, WindowCanvas};
+    use sdl3::ttf::Font;
 
     #[derive(Clone)]
     pub(crate) struct button {
@@ -15,13 +16,11 @@ pub mod buttonMod {
     }
 
     impl button {
-        pub fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, textureVec: &mut Vec<Texture>, text: String, renderer: &WindowCanvas) -> button {
-            let path = Path::new("src/Assets/DovesTypeText-Regular.ttf");
-            let ttfContext = sdl3::ttf::init().map_err(|e| e.to_string()).unwrap();
-            let font = ttfContext.load_font(path, 100.0).expect("SDL_TTF failed to load font.");
-
+        pub fn new(x: f32, y: f32, width: f32, height: f32, texturePos: usize, textureVec: &mut Vec<Texture>, text: String, renderer: &WindowCanvas, font: &Font) -> button {
             let textSurface = font.render(&*text).blended(Color::RGB(255, 255, 255)).unwrap();
             let textTexture = renderer.create_texture_from_surface(&textSurface).unwrap();
+
+            drop(textSurface);
 
             textureVec.push(textTexture);
             button {text,active: false, pressed: false, hitbox: FRect::new(x, y, width, height), textRenderArea: FRect::new(0.0,0.0,0.0,0.0), texturePos }
