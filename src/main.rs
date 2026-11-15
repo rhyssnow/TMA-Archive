@@ -459,6 +459,8 @@ fn main() {
 
 fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
     let mut upDownMovement = 0.0;
+    let mut upDownMovementGoal = 0.0;
+    let mut speed = 0.0;
     let mut maxHeight = -14000.0;
     let mut mode = "home".to_string();
     let mut running = true;
@@ -477,18 +479,20 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
 
 
     while running {
-        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &meshBox, &window, &mut upDownMovement, &mut maxHeight);
+        input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &meshBox, &window, &mut upDownMovement, &mut upDownMovementGoal, &mut speed, &mut maxHeight);
         update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec, &font);
-        render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons, upDownMovement, & mode);
+        render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons, upDownMovement, &mode);
 
         if newEnv {
+            upDownMovementGoal = 0.0;
+            upDownMovement = 0.0;
             setupEnvironment(&mode, &mut magButtons, &mut sceneButtons, &mut searchButtons, &meshBox, &mut textureVec, renderer, &mut maxHeight, &font);
             newEnv = false;
         }
     }
 }
 
-fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, meshBox: &meshBox, window: &Window, upDownMovement: &mut f32, maxHeight: &mut f32) {
+fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &mut Vec<searchButton>, sceneButtons: &mut Vec<sceneChangeButton>, meshBox: &meshBox, window: &Window, upDownMovement: &mut f32, upDownMovementGoal: &mut f32, speed: &mut f32, maxHeight: &mut f32) {
     let mut eventPump = sdl3::init().unwrap().event_pump().unwrap();
 
     for event in eventPump.poll_iter() {
@@ -498,17 +502,40 @@ fn input( running: &mut bool, magButtons: &mut Vec<magButton>, searchButtons: &m
                 *running = false;
             }
             Event::MouseWheel { y, .. } => {
-                *upDownMovement += y*50.0;
-                if *upDownMovement > 0.0 {
-                    *upDownMovement = 0.0;
+                *upDownMovementGoal += y*50.0;
+                *speed+=5.0;
+                if *speed > 150.0 {
+                    *speed = 150.0;
                 }
-                if *upDownMovement < *maxHeight {
-                    *upDownMovement = *maxHeight;
+                if *upDownMovementGoal > 0.0 {
+                    *upDownMovementGoal = 0.0;
+                }
+                if *upDownMovementGoal < *maxHeight {
+                    *upDownMovementGoal = *maxHeight;
                 }
             }
-            _ => {}
+            _ => {
+                *speed -= 0.1;
+                if *speed < 5.0 {
+                    *speed = 5.0;
+                }
+            }
         }
     }
+    if upDownMovement != upDownMovementGoal {
+        if upDownMovement > upDownMovementGoal {
+            *upDownMovement -= *speed;
+            if upDownMovement < upDownMovementGoal {
+                *upDownMovement = *upDownMovementGoal;
+            }
+        } else {
+            *upDownMovement += *speed;
+            if upDownMovement > upDownMovementGoal {
+                *upDownMovement = *upDownMovementGoal;
+            }
+        }
+    }
+    else {*speed = 0.0;}
     for magButton in magButtons.iter_mut() {
         if magButton.active {
             magButton.asButton().input(&eventPump, *upDownMovement, window, meshBox)
