@@ -396,26 +396,6 @@ impl searchButton{
             else {
                 magButton.active = false;
             }
-            /*
-            match Document::load(file.clone()) {
-                Ok(document) => {
-
-                    let pages = document.get_pages();
-                    for (i, _) in pages.iter().enumerate() {
-                        let page_number = (i + 1) as u32;
-                        let text = document.extract_text(&[page_number]);
-                        if text.unwrap().to_lowercase().contains(self.search.to_lowercase().as_str()) {
-                            magButton.active = true;
-                            break;
-                        }
-                        else {
-                            magButton.active = false;
-                        }
-                    }
-                }
-                Err(err) => eprintln!("Error: {}", err),
-            }*/
-
         });
         *maxHeight = orderButtons(magButtons);
 
@@ -490,6 +470,7 @@ fn logicLoop (  window: &mut Window, renderer: &mut WindowCanvas) {
         input(&mut running, &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut upDownMovement, &mut maxHeight);
         update( &mut magButtons, &mut searchButtons, &mut sceneButtons, &mut mode, &mut newEnv, renderer, &mut textureVec);
         render( renderer, &mut meshBox, &textureVec, window, &mut magButtons, &mut searchButtons, &mut sceneButtons, upDownMovement, & mode);
+
         if newEnv {
             setupEnvironment(&mode, &mut magButtons, &mut sceneButtons, &mut searchButtons, &meshBox, &mut textureVec, renderer, &mut maxHeight);
             newEnv = false;
