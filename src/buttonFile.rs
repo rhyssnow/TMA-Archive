@@ -10,7 +10,7 @@ pub mod buttonMod {
         pub pressed: bool,
         pub(crate) hitbox: FRect,
         pub textRenderArea: FRect,
-        text: String,
+        pub(crate) text: String,
         pub texturePos: usize,
     }
 
